@@ -29,6 +29,14 @@ class AuthService:
         self._signer = signer
         self._google_verifier = google_verifier
 
+    async def _issue_tokens(self, user: User) -> AuthResult:
+        access_token = self._signer.sign_access_token({"id": user.id, "email": user.email})
+        refresh_token = self._signer.sign_refresh_token({"id": user.id})
+        await self._refresh_token_repo.create(
+            refresh_token, user.id, utc_now() + REFRESH_TOKEN_TTL
+        )
+        return AuthResult(access_token, refresh_token, user)
+
     async def google_login(self, id_token: str | None) -> AuthResult:
         if not id_token:
             raise BadRequest("idToken is required")
@@ -44,12 +52,16 @@ class AuthService:
         user, _ = await self._user_repo.upsert_google_user(
             google_id, email, name, payload.get("picture")
         )
-        access_token = self._signer.sign_access_token({"id": user.id, "email": user.email})
-        refresh_token = self._signer.sign_refresh_token({"id": user.id})
-        await self._refresh_token_repo.create(
-            refresh_token, user.id, utc_now() + REFRESH_TOKEN_TTL
+        return await self._issue_tokens(user)
+
+    async def dev_login(self, email: str | None, name: str | None) -> AuthResult:
+        if not email or not email.strip():
+            raise BadRequest("email is required")
+        email = email.strip().lower()
+        user, _ = await self._user_repo.upsert_google_user(
+            f"dev-{email}", email, name or email.split("@")[0], None
         )
-        return AuthResult(access_token, refresh_token, user)
+        return await self._issue_tokens(user)
 
     async def refresh(self, refresh_token: str | None) -> tuple[str, str]:
         if not refresh_token:

@@ -100,6 +100,8 @@ def create_app(
 
     app.include_router(tracking.router)
     app.include_router(auth.router)
+    if settings.env == "development":
+        app.include_router(auth.dev_router)
     app.include_router(users.router)
     app.include_router(senders.router)
     app.include_router(campaigns.router)

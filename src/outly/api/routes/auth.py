@@ -45,6 +45,25 @@ async def google_login(request: Request, response: Response, services: ServicesD
     }
 
 
+dev_router = APIRouter(prefix="/auth")
+
+
+@dev_router.post("/dev-login")
+async def dev_login(request: Request, response: Response, services: ServicesDep):
+    body = await request.json()
+    result = await services.auth.dev_login(body.get("email"), body.get("name"))
+    _set_refresh_cookie(response, result.refresh_token, secure=False)
+    return {
+        "accessToken": result.access_token,
+        "user": {
+            "id": result.user.id,
+            "email": result.user.email,
+            "name": result.user.name,
+            "avatarUrl": result.user.avatar_url,
+        },
+    }
+
+
 @router.post("/refresh")
 async def refresh(request: Request, response: Response, services: ServicesDep):
     try:

@@ -31,6 +31,8 @@ uv run arq outly.worker.main.WorkerSettings
 uv run pytest
 ```
 
+For local testing without Google OAuth, `POST /auth/dev-login` with `{"email": "me@example.com"}` returns an access token (development only — the route doesn't exist when `ENV=production`).
+
 For PostgreSQL set `DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/outly`. Tables are created automatically on startup; provider profiles are seeded idempotently.
 
 ## Configuration

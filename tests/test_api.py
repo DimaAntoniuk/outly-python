@@ -236,3 +236,36 @@ def test_email_search_validation(client, auth_headers):
 
     ok = client.get("/emails/search", params={"q": "alice"}, headers=auth_headers)
     assert ok.status_code == 200
+
+
+def test_dev_login(client):
+    response = client.post(
+        "/auth/dev-login", json={"email": "Dev@Example.com", "name": "Dev User"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user"]["email"] == "dev@example.com"
+    headers = {"Authorization": f"Bearer {data['accessToken']}"}
+    me = client.get("/users/", headers=headers)
+    assert me.status_code == 200
+    assert me.json()["name"] == "Dev User"
+
+    missing_email = client.post("/auth/dev-login", json={})
+    assert missing_email.status_code == 400
+
+
+def test_dev_login_absent_in_production(tmp_path, queue):
+    from fastapi.testclient import TestClient
+
+    from outly.api.app import create_app
+    from outly.config import Settings
+
+    settings = Settings(
+        database_url=f"sqlite+aiosqlite:///{tmp_path}/prod.db",
+        attachment_dir=str(tmp_path / "attachments"),
+        env="production",
+    )
+    app = create_app(settings=settings, queue=queue)
+    with TestClient(app) as prod_client:
+        response = prod_client.post("/auth/dev-login", json={"email": "a@b.co"})
+        assert response.status_code == 404

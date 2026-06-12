@@ -10,3 +10,5 @@ FastAPI layer. HTTP concerns only — parsing, auth, cookies, response shaping. 
 Ordering invariant: campaign create/resume must `session.commit()` **before** enqueueing jobs, otherwise the worker can race an uncommitted transaction. The enqueue plans returned by `CampaignService` exist for this.
 
 Cookie contract: refresh token in an httpOnly `refreshToken` cookie scoped to `/auth/refresh`, SameSite=strict, 30-day max-age, `secure` only when `ENV=production`.
+
+Dev-only: `auth.dev_router` (`POST /auth/dev-login`, upsert user by email → tokens) is included by `create_app` only when `settings.env == "development"`; it must never be mounted in production.

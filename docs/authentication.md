@@ -63,6 +63,18 @@ Key points:
 - The ID token is verified **server-side** — the backend never trusts the client's identity claim. A `None` result maps to `401 Invalid Google token`; a missing `sub`/`email`/`name` to `400 Incomplete Google profile` (exact parity with the original).
 - Users are **upserted by `google_id`** (Google's stable `sub` claim), so the account persists across name/avatar changes.
 
+### Dev-only login (local testing)
+
+When `ENV=development` (the default), the app additionally mounts `POST /auth/dev-login` — it upserts a user by email and returns the same `{accessToken, user}` shape as the Google flow, no Google credentials needed:
+
+```bash
+curl -s -X POST http://localhost:8000/auth/dev-login \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "me@example.com", "name": "Me"}'
+```
+
+The route is not registered at all when `ENV=production`, so it 404s there. Wired in `api/app.py` (`auth.dev_router`), implemented by `AuthService.dev_login`.
+
 ### Authenticated requests
 
 Protected routers declare the `CurrentUser` dependency, which runs `get_current_user` (`api/deps.py`):
